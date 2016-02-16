@@ -100,7 +100,7 @@ void printPathRecursive(int row, int col, int *minimumDistances, int *path, int 
     map<string, int>::iterator j = nameToNum.begin();
 	if (row == col) {advance(i, row); printf("%s\t", i -> first.c_str()); }
     else {
-		if (path[row * N + col] == INT_MAX / 2) printf("%row %row %row No path exists\t\n", minimumDistances[row * N + col], row, col);
+		if (path[row * N + col] == INT_MAX / 2) printf("No path exists\t\n");
 		else {
 			printPathRecursive(row, path[row * N + col], minimumDistances, path, N);
 			advance(j, col);
@@ -184,7 +184,7 @@ int main() {
 	int N = 0;					// --- Number of vertices
 
 	// --- Read graph array from file
-	int *h_graphArray = readGraphFromFile(N, "graph2.txt");		
+	int *h_graphArray = readGraphFromFile(N, "graph.txt");		
 	printf("\n******************\n");
 	printf("* Original graph *\n");
 	printf("******************\n");

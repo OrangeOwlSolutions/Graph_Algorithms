@@ -93,6 +93,9 @@ void printMinimumDistances(int N, int *a) {
 	}
 }
 
+/********************************/
+/* PRINT MINIMUM DISTANCES PATH */
+/********************************/
 void printPathRecursive(int row, int col, int *minimumDistances, int *path, int N) {
     map<string, int>::iterator i = nameToNum.begin();
     map<string, int>::iterator j = nameToNum.begin();
@@ -133,14 +136,58 @@ void printPath(int N, int *minimumDistances, int *path) {
 /* FLOYD-WARSHALL CPU */
 /**********************/
 void h_FloydWarshall(int *h_graphMinimumDistances, int *h_graphPath, const int N) {
-	for (int k = 0; k < N; k++)
-		for (int row = 0; row < N; row++)
+	for (int k = 0; k < N; k++) {
+		for (int row = 0; row < N; row++) {
 			for (int col = 0; col < N; col++) {
 				if (h_graphMinimumDistances[row * N + col] > (h_graphMinimumDistances[row * N + k] + h_graphMinimumDistances[k * N + col])) {
 					h_graphMinimumDistances[row * N + col] = (h_graphMinimumDistances[row * N + k] + h_graphMinimumDistances[k * N + col]);
-					h_graphPath[row * N + col] = h_graphPath[k * N + col];
+					h_graphPath[row * N + col] = h_graphPath[k * N + col] ;
 				}
 			}
+		}
+	}
+
+}
+
+/********************/
+/* GRAPH REORDERING */
+/********************/
+void reorderGraph(int *h_graphArray, int N) {
+
+	map<string, int>::iterator i;
+
+	int count = 0;
+	int *mapping = (int *)malloc(N * sizeof(int));
+	for (i = nameToNum.begin(); i != nameToNum.end(); i++) {
+		mapping[i->second] = count;
+		count++; 
+	}
+
+	// --- Swap rows
+	int *h_graphArray_v2 = (int *)malloc(N * N * sizeof(int));
+	for (int row = 0; row < N; row++) {
+		for (int col = 0; col < N; col++) {
+			h_graphArray_v2[mapping[row] * N + col] = h_graphArray[row * N + col];
+		}	
+	}
+
+	// --- Swap cols
+	int *h_graphArray_v3 = (int *)malloc(N * N * sizeof(int));
+	for (int col = 0; col < N; col++) {
+		for (int row = 0; row < N; row++) {
+			h_graphArray_v3[row * N + mapping[col]] = h_graphArray_v2[row * N + col];
+		}	
+	}
+
+	// --- Copy the reordered graph
+	memcpy(h_graphArray, h_graphArray_v3, N * N * sizeof(int));
+	
+	// --- Reorder the vertices
+	count = 0;
+	for (i = nameToNum.begin(); i != nameToNum.end(); i++) {
+		i->second = count;
+		count++;
+	}
 }
 
 /*************************/
@@ -183,19 +230,24 @@ int main() {
 
 	// --- Read graph array from file
 	int *h_graphArray = readGraphFromFile(N, "graph.txt");		
+	reorderGraph(h_graphArray, N);
+
 	printf("\n******************\n");
 	printf("* Original graph *\n");
 	printf("******************\n");
 	printMinimumDistances(N, h_graphArray);
 
-	// --- Floyd-Warshall on CPU
+	// --- Floyd-Warshall on CPU: initializations
 	int *h_graphMinimumDistances = (int *) malloc(N * N * sizeof(int));
 	int *h_graphPath			 = (int *) malloc(N * N * sizeof(int));
 	memcpy(h_graphMinimumDistances, h_graphArray, N * N * sizeof(int));
-	for (int k = 0; k < N; k++) 
-		for (int l = 0; l < N; l++) 
+	for (int k = 0; k < N; k++) {
+		for (int l = 0; l < N; l++) { 
 			if (h_graphArray[k * N + l] == INT_MAX / 2) h_graphPath[k * N + l] = INT_MAX / 2;
 			else h_graphPath[k * N + l] = k;
+		}
+	}
+	for (int k = 0; k < N; k++) h_graphPath[k * N + k] = k;
 
 	h_FloydWarshall(h_graphMinimumDistances, h_graphPath, N);
 	printf("\n*************************\n");
@@ -206,7 +258,6 @@ int main() {
 	printf("* CPU result: path *\n");
 	printf("********************\n");
 	printPath(N, h_graphMinimumDistances, h_graphPath);
-
 
 	// --- Graph array device allocation and host-device memory transfer
 	int *d_graphMinimumDistances;	gpuErrchk(cudaMalloc(&d_graphMinimumDistances, N * N * sizeof(int)));
@@ -240,6 +291,7 @@ int main() {
 	printPath(N, h_graphMinimumDistances, h_graphPath);
 	
 }
+
 
 
 

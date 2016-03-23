@@ -26,20 +26,20 @@ int iDivUp(int a, int b) { return ((a % b) != 0) ? (a / b + 1) : (a / b); }
 /***********************/
 typedef struct
 {
-    // (V) This contains a pointer to the edge list for each vertex
-    int *vertexArray;
+	// --- Contains a pointer to the edge list for each vertex
+	int *vertexArray;
 
-    // Vertex count
-    int vertexCount;
+	// --- Overall number of vertices
+	int numVertices;
 
-    // (E) This contains pointers to the vertices that each edge is attached to
-    int *edgeArray;
+	// (E) This contains pointers to the vertices that each edge is attached to
+	int *edgeArray;
 
-    // Edge count
-    int edgeCount;
+	// Edge count
+	int edgeCount;
 
-    // (W) Weight array
-    float *weightArray;
+	// (W) Weight array
+	float *weightArray;
 
 } GraphData;
 
@@ -48,25 +48,21 @@ typedef struct
 /**********************************/
 void generateRandomGraph(GraphData *graph, int numVertices, int neighborsPerVertex)
 {
-    graph->vertexCount = numVertices;
-    graph->vertexArray = (int*) malloc(graph->vertexCount * sizeof(int));
-    graph->edgeCount = numVertices * neighborsPerVertex;
-    graph->edgeArray = (int*)malloc(graph->edgeCount * sizeof(int));
-    graph->weightArray = (float*)malloc(graph->edgeCount * sizeof(float));
+	graph -> numVertices	= numVertices;
+	graph -> vertexArray	= (int *)	malloc(graph -> numVertices * sizeof(int));
+	graph -> edgeCount		= numVertices * neighborsPerVertex;
+	graph -> edgeArray		= (int *)	malloc(graph -> edgeCount   * sizeof(int));
+	graph -> weightArray	= (float *)	malloc(graph -> edgeCount   * sizeof(float));
 
-    for(int i = 0; i < graph->vertexCount; i++)
-    {
-        graph->vertexArray[i] = i * neighborsPerVertex;
-		printf("vertexArray[%i] = %i\n",i,graph->vertexArray[i]);
+	for (int i = 0; i < graph->numVertices; i++) graph -> vertexArray[i] = i * neighborsPerVertex;
+
+	for (int i = 0; i < graph->edgeCount; i++)
+	{
+		graph->edgeArray[i] = (rand() % graph->numVertices);
+		graph->weightArray[i] = (float)(rand() % 1000) / 1000.0f;
+		printf("edgeArray[%i] = %i\n", i, graph->edgeArray[i]);
+		printf("weightArray[%i] = %f\n", i, graph->weightArray[i]);
 	}
-
-    for(int i = 0; i < graph->edgeCount; i++)
-    {
-        graph->edgeArray[i] = (rand() % graph->vertexCount);
-        graph->weightArray[i] = (float)(rand() % 1000) / 1000.0f;
-		printf("edgeArray[%i] = %i\n",i,graph->edgeArray[i]);
-		printf("weightArray[%i] = %f\n",i,graph->weightArray[i]);
-    }
 }
 
 /***************************/
@@ -77,26 +73,26 @@ void generateRandomGraph(GraphData *graph, int numVertices, int neighborsPerVert
 //
 bool maskArrayEmpty(int *maskArray, int count)
 {
-    for(int i = 0; i < count; i++)
-    {
-        if (maskArray[i] == 1)
-        {
-            return false;
-        }
-    }
+	for (int i = 0; i < count; i++)
+	{
+		if (maskArray[i] == 1)
+		{
+			return false;
+		}
+	}
 
-    return true;
+	return true;
 }
 
 /*************************/
 /* ARRAY INITIALIZATIONS */
 /*************************/
 __global__ void initializeArrays(int* __restrict__ maskArray, float* __restrict__ costArray, float* __restrict__ updatingCostArray,
-                                  const int sourceVertex, const int vertexCount)
+	const int sourceVertex, const int numVertices)
 {
-    int tid = blockIdx.x*blockDim.x+threadIdx.x;
+	int tid = blockIdx.x*blockDim.x + threadIdx.x;
 
-    if (tid < vertexCount) {
+	if (tid < numVertices) {
 
 		//printf("sourceVertex = %i; tid = %i \n",sourceVertex,tid);
 		if (sourceVertex == tid)
@@ -120,18 +116,18 @@ __global__ void initializeArrays(int* __restrict__ maskArray, float* __restrict_
 /*************/
 //__global__  void Kernel1(const int* __restrict__ vertexArray, const int* __restrict__ edgeArray, const float* __restrict__ weightArray,
 //                        int* __restrict__ maskArray, float* __restrict__ costArray, float* __restrict__ updatingCostArray,
-//                        const int vertexCount, const int edgeCount)
+//                        const int numVertices, const int edgeCount)
 //{
 //    int tid = blockIdx.x*blockDim.x+threadIdx.x;
 //
-//	if (tid < vertexCount) {
+//	if (tid < numVertices) {
 //	    if ( maskArray[tid] != 0 )
 //		{
 //			maskArray[tid] = 0;
 //
 //			int edgeStart = vertexArray[tid];
 //			int edgeEnd;
-//			if (tid + 1 < (vertexCount))
+//			if (tid + 1 < (numVertices))
 //			{
 //				edgeEnd = vertexArray[tid + 1];
 //			}
@@ -158,19 +154,19 @@ __global__ void initializeArrays(int* __restrict__ maskArray, float* __restrict_
 //}
 
 __global__  void Kernel1(const int* __restrict__ vertexArray, const int* __restrict__ edgeArray, const float* __restrict__ weightArray,
-                        int* __restrict__ maskArray, float* __restrict__ costArray, float* __restrict__ updatingCostArray,
-                        const int vertexCount, const int edgeCount)
+	int* __restrict__ maskArray, float* __restrict__ costArray, float* __restrict__ updatingCostArray,
+	const int numVertices, const int edgeCount)
 {
-    int tid = blockIdx.x*blockDim.x+threadIdx.x;
+	int tid = blockIdx.x*blockDim.x + threadIdx.x;
 
-	if (tid < vertexCount) {
-	    if ( maskArray[tid] != 0 )
+	if (tid < numVertices) {
+		if (maskArray[tid] != 0)
 		{
 			maskArray[tid] = 0;
 
 			int edgeStart = vertexArray[tid];
 			int edgeEnd;
-			if (tid + 1 < (vertexCount))
+			if (tid + 1 < (numVertices))
 			{
 				edgeEnd = vertexArray[tid + 1];
 			}
@@ -179,7 +175,7 @@ __global__  void Kernel1(const int* __restrict__ vertexArray, const int* __restr
 				edgeEnd = edgeCount;
 			}
 
-			for(int edge = edgeStart; edge < edgeEnd; edge++)
+			for (int edge = edgeStart; edge < edgeEnd; edge++)
 			{
 				int nid = edgeArray[edge];
 
@@ -204,14 +200,14 @@ __global__  void Kernel1(const int* __restrict__ vertexArray, const int* __restr
 /* KERNEL #2 */
 /*************/
 __global__  void Kernel2(const int* __restrict__ vertexArray, const int* __restrict__ edgeArray, const float* __restrict__ weightArray,
-                                int* __restrict__ maskArray, float* __restrict__ costArray, float* __restrict__ updatingCostArray,
-                                const int vertexCount)
+	int* __restrict__ maskArray, float* __restrict__ costArray, float* __restrict__ updatingCostArray,
+	const int numVertices)
 {
-    int tid = blockIdx.x*blockDim.x+threadIdx.x;
+	int tid = blockIdx.x*blockDim.x + threadIdx.x;
 
-    if (tid < vertexCount) {
+	if (tid < numVertices) {
 		//printf("costArray[%i] = %f; updatingCostArray[%i] = %f \n",tid,costArray[tid],tid,updatingCostArray[tid]);
-	    if (costArray[tid] > updatingCostArray[tid])
+		if (costArray[tid] > updatingCostArray[tid])
 		{
 			costArray[tid] = updatingCostArray[tid];
 			maskArray[tid] = 1;
@@ -241,69 +237,69 @@ __global__  void Kernel2(const int* __restrict__ vertexArray, const int* __restr
 void runDijkstra(GraphData* graph, int *sourceVertices, float *outResultCosts, int numResults)
 {
 	// --- Create vertex array Va, edge array Ea and weight array Wa from G(V,E,W)
-	int		*vertexArrayDevice;			cudaMalloc((void**)&vertexArrayDevice,			sizeof(int) * graph->vertexCount);
-	int		*edgeArrayDevice;			cudaMalloc((void**)&edgeArrayDevice,			sizeof(int) * graph->edgeCount);
-	float	*weightArrayDevice;			cudaMalloc((void**)&weightArrayDevice,			sizeof(float) * graph->edgeCount);
+	int		*vertexArrayDevice;			cudaMalloc((void**)&vertexArrayDevice, sizeof(int) * graph->numVertices);
+	int		*edgeArrayDevice;			cudaMalloc((void**)&edgeArrayDevice, sizeof(int) * graph->edgeCount);
+	float	*weightArrayDevice;			cudaMalloc((void**)&weightArrayDevice, sizeof(float) * graph->edgeCount);
 
-    cudaMemcpy(vertexArrayDevice, graph->vertexArray, sizeof(int) * graph->vertexCount, cudaMemcpyHostToDevice);
-    cudaMemcpy(edgeArrayDevice, graph->edgeArray, sizeof(int) * graph->edgeCount, cudaMemcpyHostToDevice);
-    cudaMemcpy(weightArrayDevice, graph->weightArray, sizeof(float) * graph->edgeCount, cudaMemcpyHostToDevice);
+	cudaMemcpy(vertexArrayDevice, graph->vertexArray, sizeof(int) * graph->numVertices, cudaMemcpyHostToDevice);
+	cudaMemcpy(edgeArrayDevice, graph->edgeArray, sizeof(int) * graph->edgeCount, cudaMemcpyHostToDevice);
+	cudaMemcpy(weightArrayDevice, graph->weightArray, sizeof(float) * graph->edgeCount, cudaMemcpyHostToDevice);
 
 	// --- Create mask array Ma, cost array Ca and updating cost array Ua of size V
-	int		*maskArrayDevice;			cudaMalloc((void**)&maskArrayDevice,			sizeof(int) * graph->vertexCount);
-	float	*costArrayDevice;			cudaMalloc((void**)&costArrayDevice,			sizeof(float) * graph->vertexCount);
-	float	*updatingCostArrayDevice;	cudaMalloc((void**)&updatingCostArrayDevice,	sizeof(float) * graph->vertexCount);
+	int		*maskArrayDevice;			cudaMalloc((void**)&maskArrayDevice, sizeof(int) * graph->numVertices);
+	float	*costArrayDevice;			cudaMalloc((void**)&costArrayDevice, sizeof(float) * graph->numVertices);
+	float	*updatingCostArrayDevice;	cudaMalloc((void**)&updatingCostArrayDevice, sizeof(float) * graph->numVertices);
 
-	int *maskArrayHost = (int*) malloc(sizeof(int) * graph->vertexCount);
+	int *maskArrayHost = (int*)malloc(sizeof(int) * graph->numVertices);
 
-    for ( int i = 0 ; i < numResults; i++ )
-    {
+	for (int i = 0; i < numResults; i++)
+	{
 		// --- Initialize mask Ma to false, cost array Ca and Updating cost array Ua to \u221e
-		initializeArrays<<<iDivUp(graph->vertexCount,BLOCK_SIZE),BLOCK_SIZE>>>(maskArrayDevice, costArrayDevice, updatingCostArrayDevice, sourceVertices[i], graph->vertexCount);
+		initializeArrays << <iDivUp(graph->numVertices, BLOCK_SIZE), BLOCK_SIZE >> >(maskArrayDevice, costArrayDevice, updatingCostArrayDevice, sourceVertices[i], graph->numVertices);
 
 		// --- Read mask array from device -> host
-		cudaMemcpy(maskArrayHost, maskArrayDevice, sizeof(int) * graph->vertexCount, cudaMemcpyDeviceToHost);
+		cudaMemcpy(maskArrayHost, maskArrayDevice, sizeof(int) * graph->numVertices, cudaMemcpyDeviceToHost);
 
-		// for (int i=0; i<graph->vertexCount; i++) { printf("maskarray[%i] = %i \n", i, maskArrayHost[i]); }
+		// for (int i=0; i<graph->numVertices; i++) { printf("maskarray[%i] = %i \n", i, maskArrayHost[i]); }
 
-		while(!maskArrayEmpty(maskArrayHost, graph->vertexCount))
-        {
-            // In order to improve performance, we run some number of iterations
-            // without reading the results.  This might result in running more iterations
-            // than necessary at times, but it will in most cases be faster because
-            // we are doing less stalling of the GPU waiting for results.
-            for(int asyncIter = 0; asyncIter < NUM_ASYNCHRONOUS_ITERATIONS; asyncIter++)
-            {
-                // execute the kernel
-				Kernel1<<<iDivUp(graph->vertexCount,BLOCK_SIZE),BLOCK_SIZE>>>(vertexArrayDevice, edgeArrayDevice, weightArrayDevice, maskArrayDevice, costArrayDevice,
-					          updatingCostArrayDevice, graph->vertexCount, graph->edgeCount);
+		while (!maskArrayEmpty(maskArrayHost, graph->numVertices))
+		{
+			// In order to improve performance, we run some number of iterations
+			// without reading the results.  This might result in running more iterations
+			// than necessary at times, but it will in most cases be faster because
+			// we are doing less stalling of the GPU waiting for results.
+			for (int asyncIter = 0; asyncIter < NUM_ASYNCHRONOUS_ITERATIONS; asyncIter++)
+			{
+				// execute the kernel
+				Kernel1 << <iDivUp(graph->numVertices, BLOCK_SIZE), BLOCK_SIZE >> >(vertexArrayDevice, edgeArrayDevice, weightArrayDevice, maskArrayDevice, costArrayDevice,
+					updatingCostArrayDevice, graph->numVertices, graph->edgeCount);
 
-				Kernel2<<<iDivUp(graph->vertexCount,BLOCK_SIZE),BLOCK_SIZE>>>(vertexArrayDevice, edgeArrayDevice, weightArrayDevice, maskArrayDevice, costArrayDevice, updatingCostArrayDevice,
-                              graph->vertexCount);
+				Kernel2 << <iDivUp(graph->numVertices, BLOCK_SIZE), BLOCK_SIZE >> >(vertexArrayDevice, edgeArrayDevice, weightArrayDevice, maskArrayDevice, costArrayDevice, updatingCostArrayDevice,
+					graph->numVertices);
 
-            }
+			}
 
-			cudaMemcpy(maskArrayHost, maskArrayDevice, sizeof(int) * graph->vertexCount, cudaMemcpyDeviceToHost);
-			for (int i=0; i<graph->vertexCount; i++) printf("%f\n",maskArrayHost[i]);
+			cudaMemcpy(maskArrayHost, maskArrayDevice, sizeof(int) * graph->numVertices, cudaMemcpyDeviceToHost);
+			for (int i = 0; i<graph->numVertices; i++) printf("%f\n", maskArrayHost[i]);
 			printf("\n\n");
 
 		}
 
-        // Copy the result back
-		cudaMemcpy(&outResultCosts[i * graph->vertexCount], costArrayDevice, sizeof(float) * graph->vertexCount, cudaMemcpyDeviceToHost);
-	    for (int j=0; j<graph->vertexCount; j++) printf("%f\n",outResultCosts[i*graph->vertexCount+j]);
-    }
+		// Copy the result back
+		cudaMemcpy(&outResultCosts[i * graph->numVertices], costArrayDevice, sizeof(float) * graph->numVertices, cudaMemcpyDeviceToHost);
+		for (int j = 0; j<graph->numVertices; j++) printf("%f\n", outResultCosts[i*graph->numVertices + j]);
+	}
 
-    free(maskArrayHost);
+	free(maskArrayHost);
 
-    cudaFree(vertexArrayDevice);
-    cudaFree(edgeArrayDevice);
-    cudaFree(weightArrayDevice);
-    cudaFree(maskArrayDevice);
-    cudaFree(costArrayDevice);
-    cudaFree(updatingCostArrayDevice);
+	cudaFree(vertexArrayDevice);
+	cudaFree(edgeArrayDevice);
+	cudaFree(weightArrayDevice);
+	cudaFree(maskArrayDevice);
+	cudaFree(costArrayDevice);
+	cudaFree(updatingCostArrayDevice);
 
-    std::cout << "Computed '" << numResults << "' results" << std::endl;
+	std::cout << "Computed '" << numResults << "' results" << std::endl;
 }
 
 /****************/
@@ -313,40 +309,40 @@ int main()
 {
 	// --- Number of source locations. A source location is a starting point for the path. The algorithm calculates optimal paths from multiple source
 	//     locations
-    int numSources = 1;
+	int numSources = 1;
 	// --- Number of graph nodes
-    int generateVerts = 5;
+	int generateVerts = 5;
 	// --- Number of edges per graph node
-    int generateEdgesPerVert = 2;
+	int generateEdgesPerVert = 2;
 
-    // --- Allocate memory for arrays
-    GraphData graph;
-    generateRandomGraph(&graph, generateVerts, generateEdgesPerVert);
+	// --- Allocate memory for arrays
+	GraphData graph;
+	generateRandomGraph(&graph, generateVerts, generateEdgesPerVert);
 
-    printf("Vertex Count: %d\n", graph.vertexCount);
-    printf("Edge Count: %d\n", graph.edgeCount);
+	printf("Vertex Count: %d\n", graph.numVertices);
+	printf("Edge Count: %d\n", graph.edgeCount);
 
-    std::vector<int> sourceVertices;
+	std::vector<int> sourceVertices;
 
-    for(int source = 0; source < numSources; source++)
-    {
-        sourceVertices.push_back(source % graph.vertexCount);
-    }
+	for (int source = 0; source < numSources; source++)
+	{
+		sourceVertices.push_back(source % graph.numVertices);
+	}
 
-    int *sourceVertArray = (int*) malloc(sizeof(int) * sourceVertices.size());
-    std::copy(sourceVertices.begin(), sourceVertices.end(), sourceVertArray);
+	int *sourceVertArray = (int*)malloc(sizeof(int) * sourceVertices.size());
+	std::copy(sourceVertices.begin(), sourceVertices.end(), sourceVertArray);
 
-    printf("Num source %d = ; Source %d = \n",sourceVertices.size(),sourceVertArray[0]);
+	printf("Num source %d = ; Source %d = \n", sourceVertices.size(), sourceVertArray[0]);
 
 	// --- Allocate space for the results
-	float *results = (float*) malloc(sizeof(float) * sourceVertices.size() * graph.vertexCount);
+	float *results = (float*)malloc(sizeof(float) * sourceVertices.size() * graph.numVertices);
 
-    runDijkstra(&graph, sourceVertArray, results, sourceVertices.size());
+	runDijkstra(&graph, sourceVertArray, results, sourceVertices.size());
 
-    for (int i=0; i<graph.vertexCount; i++) printf("%f\n",results[i]);
+	for (int i = 0; i<graph.numVertices; i++) printf("%f\n", results[i]);
 
 	free(sourceVertArray);
-    free(results);
+	free(results);
 
 	getchar();
 

@@ -61,14 +61,24 @@ void generateRandomGraph(GraphData *graph, int numVertices, int neighborsPerVert
 
 	for (int i = 0; i < graph -> numVertices; i++) graph -> vertexArray[i] = i * neighborsPerVertex;
 
-	for (int k = 0; k < numVertices; k++)
+	int *tempArray = (int *)malloc(neighborsPerVertex * sizeof(int));
+	for (int k = 0; k < numVertices; k++) {
+		for (int l = 0; l < neighborsPerVertex; l++) tempArray[l] = INT_MAX;
 		for (int l = 0; l < neighborsPerVertex; l++) {
-			int temp = (rand() % graph->numVertices);
-			while (temp == k) temp = (rand() % graph->numVertices);
+			bool goOn = false;
+			int temp;
+			while (goOn == false) {
+				goOn = true;
+				temp = (rand() % graph->numVertices);
+				for (int t = 0; t < neighborsPerVertex; t++)
+					if (temp == tempArray[t]) goOn = false;
+				if (temp == k) goOn = false;
+				if (goOn == true) tempArray[l] = temp;
+			}
 			graph -> edgeArray  [k * neighborsPerVertex + l] = temp;
 			graph -> weightArray[k * neighborsPerVertex + l] = (float)(rand() % 1000) / 1000.0f;
+		}
 	}
-
 }
 
 /************************/
@@ -281,10 +291,10 @@ void dijkstraGPU(GraphData *graph, const int sourceVertex, float * __restrict__ 
 int main() {
 
 	// --- Number of graph vertices
-	int numVertices = 5;
+	int numVertices = 8;
 
 	// --- Number of edges per graph vertex
-	int neighborsPerVertex = 4;
+	int neighborsPerVertex = 6;
 
 	// --- Source vertex
 	int sourceVertex = 0;
@@ -307,6 +317,9 @@ int main() {
 			printf("Vertex nr. %i; Edge nr. %i; Weight = %f\n", k, graph.edgeArray[graph.vertexArray[k] + l],
 																   graph.weightArray[graph.vertexArray[k] + l]);
 		}
+
+	for (int k = 0; k < numVertices * neighborsPerVertex; k++)
+		printf("%i %i %f\n", k, graph.edgeArray[k], graph.weightArray[k]);
 
 	// --- Displaying the adjacency matrix
 	printf("\nAdjacency matrix\n");
